@@ -1,5 +1,4 @@
 
-
 // --- JavaScript for Interactions and Animations ---
 
 /**
@@ -10,7 +9,7 @@ function updateScrollProgress() {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     // Calculate total scrollable height
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const scrollPercent = (scrollTop / docHeight) * 100;
+    const scrollPercent = (docHeight > 0) ? (scrollTop / docHeight) * 100 : 0; // Avoid division by zero
     document.getElementById('scrollProgress').style.width = scrollPercent + '%';
 }
 
@@ -125,7 +124,7 @@ document.getElementById('ebookForm').addEventListener('submit', async function(e
         setTimeout(() => {
             submitBtn.classList.remove('loading');
             spinner.style.display = 'none';
-            btnText.textContent = 'SEND ME THE GUIDE';
+            btnText.textContent = 'Send Me The Guide';
         }, 500); // Give a moment for the status message to be seen
     }
 });
@@ -246,13 +245,6 @@ window.addEventListener('scroll', () => {
 // Initial setup when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     updateScrollProgress(); // Set initial progress bar width
-    
-    // Add staggered loading animation to initial visible elements if needed
-    // (Observer handles most, but this can ensure first-load elements animate)
-    // const elements = document.querySelectorAll('.animate-on-scroll');
-    // elements.forEach((el, index) => {
-    //     el.style.animationDelay = `${index * 0.1}s`;
-    // });
 });
 
 // Basic error handling for console logging
@@ -260,13 +252,79 @@ window.addEventListener('error', (e) => {
     console.error('An unhandled error occurred:', e.error);
 });
 
-// Optional: Service worker registration for PWA features (uncomment if you have 'sw.js')
-// if ('serviceWorker' in navigator) {
-//     window.addEventListener('load', () => {
-//         navigator.serviceWorker.register('/sw.js').then(registration => {
-//             console.log('SW registered: ', registration);
-//         }).catch(registrationError => {
-//             console.log('SW registration failed: ', registrationError);
-//         });
-//     });
-// }
+// --- Gemini API Integration for Financial Insight Generator (NEW) ---
+document.getElementById('generateInsightBtn').addEventListener('click', async function() {
+    const insightInput = document.getElementById('insightInput').value;
+    const insightOutputDiv = document.getElementById('insightOutput');
+    const insightText = document.getElementById('insightText');
+    const insightStatusMessage = document.getElementById('insightStatusMessage');
+    const generateBtn = this;
+    const spinner = generateBtn.querySelector('.spinner');
+    const btnText = generateBtn.querySelector('.btn-text');
+
+    if (!insightInput.trim()) {
+        insightStatusMessage.textContent = 'Please enter a financial topic or question.';
+        insightStatusMessage.className = 'status-message error show';
+        return;
+    }
+
+    // Set loading state
+    generateBtn.classList.add('loading');
+    spinner.style.display = 'inline-block';
+    btnText.textContent = 'GENERATING...';
+    insightOutputDiv.classList.remove('show'); // Hide previous output
+    insightText.textContent = ''; // Clear previous text
+    insightStatusMessage.classList.remove('show', 'success', 'error'); // Clear previous status
+
+    // Add haptic feedback
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+
+    try {
+        let chatHistory = [];
+        // Construct a clear and concise prompt for the LLM
+        const prompt = `Provide a concise and helpful financial insight, explanation, or a motivational quote related to the following topic: "${insightInput}". Keep it under 150 words and be encouraging.`;
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        const payload = { contents: chatHistory };
+        // The apiKey is provided by the Canvas environment; leave it as an empty string.
+        const apiKey = ""; 
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        // Check if the response contains valid content from the LLM
+        if (result.candidates && result.candidates.length > 0 &&
+            result.candidates[0].content && result.candidates[0].content.parts &&
+            result.candidates[0].content.parts.length > 0) {
+            const text = result.candidates[0].content.parts[0].text;
+            insightText.textContent = text; // Display the generated text
+            insightOutputDiv.classList.add('show'); // Show the output div with animation
+            insightStatusMessage.textContent = 'Insight generated successfully!';
+            insightStatusMessage.className = 'status-message success show';
+        } else {
+            // Handle cases where the LLM response is empty or malformed
+            insightStatusMessage.textContent = 'Could not generate insight. Please try a different topic.';
+            insightStatusMessage.className = 'status-message error show';
+            console.error('Gemini API response structure unexpected:', result);
+        }
+    } catch (error) {
+        // Handle network or other errors during the API call
+        console.error('Error generating insight:', error);
+        insightStatusMessage.textContent = 'An error occurred while connecting to the insight generator. Please try again.';
+        insightStatusMessage.className = 'status-message error show';
+    } finally {
+        // Reset button state after a short delay
+        setTimeout(() => {
+            generateBtn.classList.remove('loading');
+            spinner.style.display = 'none';
+            btnText.textContent = 'Generate Insight';
+        }, 500);
+    }
+});
