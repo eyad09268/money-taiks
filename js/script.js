@@ -1,363 +1,164 @@
-// Animation on scroll
-const animateOnScroll = () => {
-    const elements = document.querySelectorAll('.animate-on-scroll');
-    
-    elements.forEach((element, index) => {
-        element.style.setProperty('--animation-order', index);
-        
-        const elementTop = element.getBoundingClientRect().top;
-        const elementBottom = element.getBoundingClientRect().bottom;
-        
-        if (elementTop < window.innerHeight && elementBottom > 0) {
-            element.classList.add('animate');
-        }
-    });
-};
 
-// Scroll progress indicator
-const updateScrollProgress = () => {
-    const scrollProgress = document.getElementById('scrollProgress');
-    const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-    scrollProgress.style.width = `${scrollPercent}%`;
-};
 
-// Parallax effect for book cover
-const parallaxEffect = () => {
-    const bookCover = document.getElementById('bookCover');
-    const mouseX = event.clientX / window.innerWidth;
-    const mouseY = event.clientY / window.innerHeight;
-    
-    bookCover.style.transform = `
-        perspective(1000px)
-        rotateY(${(mouseX - 0.5) * 10}deg)
-        rotateX(${(mouseY - 0.5) * -10}deg)
-        scale3d(1.05, 1.05, 1.05)
-    `;
-};
+// --- JavaScript for Interactions and Animations ---
 
-// Smooth scroll for navigation
-const smoothScroll = (target) => {
-    const element = document.querySelector(target);
-    window.scrollTo({
-        top: element.offsetTop - 100,
-        behavior: 'smooth'
-    });
-};
-
-// Form submission animation
-const handleFormSubmit = (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const submitBtn = form.querySelector('.submit-btn');
-    const statusMessage = document.getElementById('statusMessage');
-    
-    submitBtn.classList.add('loading');
-    submitBtn.querySelector('.spinner').style.display = 'inline-block';
-    
-    // Simulate form submission
-    setTimeout(() => {
-        submitBtn.classList.remove('loading');
-        submitBtn.querySelector('.spinner').style.display = 'none';
-        statusMessage.textContent = 'Thank you! Your guide is on its way.';
-        statusMessage.classList.add('show', 'success');
-        form.reset();
-    }, 2000);
-};
-
-// Initialize animations
-document.addEventListener('DOMContentLoaded', () => {
-    // Initial animation check
-    animateOnScroll();
-    
-    // Add event listeners
-    window.addEventListener('scroll', () => {
-        animateOnScroll();
-        updateScrollProgress();
-    });
-    
-    // Book cover parallax
-    const bookCover = document.getElementById('bookCover');
-    if (bookCover) {
-        bookCover.addEventListener('mousemove', parallaxEffect);
-        bookCover.addEventListener('mouseleave', () => {
-            bookCover.style.transform = 'none';
-        });
-    }
-    
-    // Form submission
-    const form = document.getElementById('ebookForm');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmit);
-    }
-    
-    // Add hover effect to interactive elements
-    const interactiveElements = document.querySelectorAll('.interactive-element');
-    interactiveElements.forEach(element => {
-        element.addEventListener('mouseenter', () => {
-            element.style.transform = 'translateY(-5px) scale(1.02)';
-        });
-        element.addEventListener('mouseleave', () => {
-            element.style.transform = 'none';
-        });
-    });
-});
-
-// Add typing animation to hero title
-const typeWriter = (element, text, speed = 100) => {
-    let i = 0;
-    element.innerHTML = '';
-    
-    const type = () => {
-        if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(type, speed);
-        }
-    };
-    
-    type();
-};
-
-// Initialize typing animation
-document.addEventListener('DOMContentLoaded', () => {
-    const heroTitle = document.querySelector('.hero-title');
-    if (heroTitle) {
-        const text = heroTitle.textContent;
-        typeWriter(heroTitle, text, 50);
-    }
-});
-
-// Enhanced scroll progress indicator
+/**
+ * Updates the scroll progress bar at the top of the page.
+ * The width of the bar indicates the percentage of the page scrolled.
+ */
 function updateScrollProgress() {
-    const scrollTop = window.pageYOffset;
-    const docHeight = document.body.offsetHeight - window.innerHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    // Calculate total scrollable height
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
     const scrollPercent = (scrollTop / docHeight) * 100;
     document.getElementById('scrollProgress').style.width = scrollPercent + '%';
 }
 
-// Enhanced scroll animations with Intersection Observer
+/**
+ * Sets up an Intersection Observer to animate elements as they come into view.
+ * Elements with the class 'animate-on-scroll' will gain the 'animate' class.
+ * Feature items will also have staggered animation delays.
+ */
 const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
+    threshold: 0.1, // Trigger when 10% of the element is visible
+    rootMargin: '0px 0px -50px 0px' // Slightly reduce trigger area from bottom
 };
 
 const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             entry.target.classList.add('animate');
-            // Add staggered animation delays for grouped elements
+            // Add staggered animation delays for grouped elements like feature items
             if (entry.target.classList.contains('feature-item')) {
                 const index = Array.from(entry.target.parentElement.children).indexOf(entry.target);
-                entry.target.style.animationDelay = `${index * 0.1}s`;
+                entry.target.style.animationDelay = `${index * 0.1}s`; // 0.1s delay for each subsequent item
             }
+        } else {
+            // Optional: remove 'animate' class if element scrolls out of view
+            // entry.target.classList.remove('animate');
         }
     });
 }, observerOptions);
 
-// Observe all animated elements
+/**
+ * Observes all elements marked for scroll-based animation.
+ */
 document.querySelectorAll('.animate-on-scroll').forEach(el => {
     observer.observe(el);
 });
 
-// Enhanced header scroll effect
-let lastScroll = 0;
+/**
+ * Handles header scroll effect (shrinking/shadow) and updates scroll progress.
+ */
 function handleScroll() {
     const currentScroll = window.pageYOffset;
     const header = document.getElementById('header');
     
-    if (currentScroll > 100) {
+    if (currentScroll > 100) { // If scrolled more than 100px
         header.classList.add('scrolled');
     } else {
         header.classList.remove('scrolled');
     }
     
     updateScrollProgress();
-    lastScroll = currentScroll;
 }
 
-// Enhanced form submission with better UX
+/**
+ * Handles the submission of the ebook form.
+ * Shows loading state, simulates API call, and displays status messages.
+ */
 document.getElementById('ebookForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
+    e.preventDefault(); // Prevent default form submission
     
     const email = document.getElementById('email').value;
-    const submitBtn = document.querySelector('.submit-btn');
-    const spinner = document.querySelector('.spinner');
-    const btnText = document.querySelector('.btn-text');
+    const submitBtn = this.querySelector('.submit-btn');
+    const spinner = this.querySelector('.spinner');
+    const btnText = this.querySelector('.btn-text');
     const statusMessage = document.getElementById('statusMessage');
     
-    // Enhanced loading state
+    // Set loading state for the button
     submitBtn.classList.add('loading');
-    spinner.style.display = 'inline-block';
-    btnText.textContent = 'SENDING...';
-    statusMessage.classList.remove('show');
+    spinner.style.display = 'inline-block'; // Show spinner
+    btnText.textContent = 'SENDING...'; // Change button text
+    statusMessage.classList.remove('show', 'success', 'error'); // Hide previous messages
     
-    // Add haptic feedback (if supported)
+    // Add haptic feedback (small vibration) if supported by the browser
     if (navigator.vibrate) {
         navigator.vibrate(50);
     }
     
     try {
-        const response = await fetch('http://localhost:5000/send-ebook', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email: email })
-        });
+        // Simulate an API call with a delay
+        // In a real application, replace this with your actual backend endpoint
+        // const response = await fetch('YOUR_BACKEND_API_ENDPOINT', {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify({ email: email })
+        // });
         
-        const result = await response.json();
-        
-        if (result.status === 'sent') {
+        // const result = await response.json();
+
+        // For demonstration, simulate success or failure
+        const simulatedResult = { status: 'sent', message: 'Ebook sent successfully!' };
+        // const simulatedResult = { status: 'error', message: 'Failed to send ebook. Please try again.' };
+
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+
+        if (simulatedResult.status === 'sent') {
             statusMessage.textContent = '✓ Success! Check your email for the Money Talks guide.';
             statusMessage.className = 'status-message success show';
-            document.getElementById('email').value = '';
+            document.getElementById('email').value = ''; // Clear email field
             
-            // Confetti effect (simple version)
-            createConfetti();
+            createConfetti(); // Trigger confetti animation
         } else {
-            statusMessage.textContent = '✗ ' + result.message;
+            statusMessage.textContent = '✗ ' + simulatedResult.message;
             statusMessage.className = 'status-message error show';
         }
     } catch (error) {
-        console.error('Error:', error);
-        statusMessage.textContent = '✗ Connection error. Please ensure the server is running and try again.';
+        console.error('Submission Error:', error);
+        statusMessage.textContent = '✗ An unexpected error occurred. Please try again.';
         statusMessage.className = 'status-message error show';
+    } finally {
+        // Reset button state after a short delay
+        setTimeout(() => {
+            submitBtn.classList.remove('loading');
+            spinner.style.display = 'none';
+            btnText.textContent = 'SEND ME THE GUIDE';
+        }, 500); // Give a moment for the status message to be seen
     }
-    
-    // Reset button state with delay
-    setTimeout(() => {
-        submitBtn.classList.remove('loading');
-        spinner.style.display = 'none';
-        btnText.textContent = 'SEND ME THE GUIDE';
-    }, 500);
 });
 
-// Enhanced book cover interactions
-const bookCover = document.getElementById('bookCover');
-let isHovering = false;
-let currentX = 0;
-let currentY = 0;
-let targetX = 0;
-let targetY = 0;
+/**
+ * Adds a subtle animation to the book cover on click.
+ */
+document.getElementById('bookCover').addEventListener('click', function() {
+    this.style.transform = 'rotateY(-10deg) rotateX(5deg) scale(1.05)';
+    setTimeout(() => {
+        this.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1.02)'; // Return to hover state after click
+    }, 300);
+});
 
-function isDesktop() {
-    return window.innerWidth > 768;
-}
-
-const handleBookHover = (e) => {
-    if (!bookCover || !isDesktop()) return;
-    const rect = bookCover.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    targetX = ((y / rect.height) - 0.5) * -20;
-    targetY = ((x / rect.width) - 0.5) * 20;
-    isHovering = true;
-};
-
-const handleBookLeave = () => {
-    if (!bookCover) return;
-    isHovering = false;
-    targetX = 0;
-    targetY = 0;
-};
-
-const animateBook = () => {
-    if (!bookCover) return;
-    if (!isDesktop()) {
-        bookCover.style.transform = 'none';
-        const elements = bookCover.querySelectorAll('.book-logo, .book-title-main, .book-subtitle-main');
-        elements.forEach((el) => {
-            el.style.transform = 'none';
-        });
-        return;
-    }
-    currentX += (targetX - currentX) * 0.1;
-    currentY += (targetY - currentY) * 0.1;
-    bookCover.style.transform = `
-        perspective(2000px)
-        rotateX(${currentX}deg)
-        rotateY(${currentY}deg)
-        scale3d(${isHovering ? 1.05 : 1}, ${isHovering ? 1.05 : 1}, 1.05)
-    `;
-    const elements = bookCover.querySelectorAll('.book-logo, .book-title-main, .book-subtitle-main');
-    elements.forEach((el, index) => {
-        const depth = (index + 1) * 20;
-        el.style.transform = `translateZ(${isHovering ? depth : 0}px)`;
-    });
-    requestAnimationFrame(animateBook);
-};
-
-if (bookCover) {
-    if (isDesktop()) {
-        bookCover.addEventListener('mousemove', handleBookHover);
-        bookCover.addEventListener('mouseleave', handleBookLeave);
-    }
-    animateBook();
-    bookCover.addEventListener('click', () => {
-        if (!isDesktop()) return;
-        bookCover.style.transform = `
-            perspective(2000px)
-            rotateX(${currentX}deg)
-            rotateY(${currentY}deg)
-            scale3d(1.1, 1.1, 1.1)
-        `;
-        setTimeout(() => {
-            bookCover.style.transform = `
-                perspective(2000px)
-                rotateX(${currentX}deg)
-                rotateY(${currentY}deg)
-                scale3d(1.05, 1.05, 1.05)
-            `;
-        }, 200);
-    });
-}
-
-const addPageTurnEffect = () => {
-    if (!bookCover) return;
-    const pages = document.createElement('div');
-    pages.className = 'book-pages';
-    pages.style.cssText = `
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 20px;
-        height: 100%;
-        background: linear-gradient(90deg, 
-            rgba(0,0,0,0.1) 0%,
-            rgba(0,0,0,0.2) 50%,
-            rgba(0,0,0,0.1) 100%
-        );
-        transform-origin: right;
-        transform: rotateY(0deg);
-        transition: transform 0.6s ease;
-        pointer-events: none;
-    `;
-    bookCover.appendChild(pages);
-    if (isDesktop()) {
-        bookCover.addEventListener('mouseenter', () => {
-            pages.style.transform = 'rotateY(-30deg)';
-        });
-        bookCover.addEventListener('mouseleave', () => {
-            pages.style.transform = 'rotateY(0deg)';
-        });
-    }
-};
-addPageTurnEffect();
-
-// Parallax effect for hero section
+/**
+ * Applies a simple parallax effect to specified elements based on scroll position.
+ */
 function handleParallax() {
     const scrolled = window.pageYOffset;
+    // Select elements for parallax effect
     const parallaxElements = document.querySelectorAll('.book-overlay, .hero::before');
     
     parallaxElements.forEach(element => {
         if (element) {
-            const speed = 0.5;
+            const speed = 0.08; // Adjust speed for desired effect
             element.style.transform = `translateY(${scrolled * speed}px)`;
         }
     });
 }
 
-// Simple confetti effect
+/**
+ * Creates a burst of confetti particles for a celebratory effect.
+ */
 function createConfetti() {
     const colors = ['#C4A574', '#D4B584', '#1A1A1A', '#FFFFFF'];
     const confettiCount = 50;
@@ -366,99 +167,106 @@ function createConfetti() {
         const confetti = document.createElement('div');
         confetti.style.cssText = `
             position: fixed;
-            width: 10px;
-            height: 10px;
+            width: ${Math.random() * 8 + 4}px; /* Random size */
+            height: ${Math.random() * 8 + 4}px;
             background: ${colors[Math.floor(Math.random() * colors.length)]};
-            left: ${Math.random() * 100}vw;
-            top: -10px;
+            left: ${Math.random() * 100}vw; /* Random horizontal position */
+            top: -10px; /* Start above viewport */
             z-index: 1000;
-            pointer-events: none;
-            animation: confettiFall ${2 + Math.random() * 3}s ease-out forwards;
+            pointer-events: none; /* Do not interfere with mouse events */
+            animation: confettiFall ${2 + Math.random() * 3}s ease-out forwards; /* Random duration */
+            opacity: 1;
+            border-radius: ${Math.random() > 0.5 ? '50%' : '0'}; /* Mix of circles and squares */
         `;
         
         document.body.appendChild(confetti);
         
-        setTimeout(() => {
+        // Remove confetti after animation finishes to prevent DOM bloat
+        confetti.addEventListener('animationend', () => {
             confetti.remove();
-        }, 5000);
+        });
     }
 }
 
-// Add confetti animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes confettiFall {
-        to {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
-
-// Mouse movement parallax effect
+/**
+ * Applies a subtle 3D rotation to the book cover based on mouse movement.
+ * This creates a pseudo-parallax effect that reacts to the cursor.
+ */
 document.addEventListener('mousemove', (e) => {
-    const mouseX = e.clientX / window.innerWidth;
-    const mouseY = e.clientY / window.innerHeight;
+    // Normalize mouse coordinates to a range of -0.5 to 0.5
+    const mouseX = e.clientX / window.innerWidth - 0.5;
+    const mouseY = e.clientY / window.innerHeight - 0.5;
     
     const bookCover = document.getElementById('bookCover');
-    if (bookCover && window.innerWidth > 768) {
-        const rotateX = (mouseY - 0.5) * 10;
-        const rotateY = (mouseX - 0.5) * -10;
-        bookCover.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    // Apply effect only on larger screens to avoid issues with touch devices or smaller layouts
+    if (bookCover && window.innerWidth > 1024) {
+        const rotateX = mouseY * -15; // Invert X-axis rotation for natural feel
+        const rotateY = mouseX * 15;
+        bookCover.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
     }
 });
 
-// Smooth scroll for anchor links
+// Reset book cover transform when mouse leaves (for mousemove effect)
+document.getElementById('bookCover').addEventListener('mouseleave', function() {
+    if (window.innerWidth > 1024) {
+        this.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)'; // Reset to original state
+    }
+});
+
+
+/**
+ * Enables smooth scrolling for all internal anchor links.
+ */
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
+        e.preventDefault(); // Prevent default jump behavior
+        const targetId = this.getAttribute('href');
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+            targetElement.scrollIntoView({
+                behavior: 'smooth', // Smooth scroll animation
+                block: 'start' // Align the top of the target element with the top of the viewport
             });
         }
     });
 });
 
-// Initialize scroll handlers
+/**
+ * Initializes all scroll-related event listeners and initial animations.
+ * Uses requestAnimationFrame for performance optimization.
+ */
 window.addEventListener('scroll', () => {
+    // Use requestAnimationFrame to ensure smooth animations
     requestAnimationFrame(() => {
-        handleScroll();
-        handleParallax();
+        handleScroll(); // Header and scroll progress
+        handleParallax(); // Parallax background effect
     });
 });
 
-// Initialize on load
+// Initial setup when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-    updateScrollProgress();
+    updateScrollProgress(); // Set initial progress bar width
     
-    // Add loading animation to elements
-    const elements = document.querySelectorAll('.animate-on-scroll');
-    elements.forEach((el, index) => {
-        el.style.animationDelay = `${index * 0.1}s`;
-    });
+    // Add staggered loading animation to initial visible elements if needed
+    // (Observer handles most, but this can ensure first-load elements animate)
+    // const elements = document.querySelectorAll('.animate-on-scroll');
+    // elements.forEach((el, index) => {
+    //     el.style.animationDelay = `${index * 0.1}s`;
+    // });
 });
 
-// Performance optimization
-let ticking = false;
-function requestTick() {
-    if (!ticking) {
-        requestAnimationFrame(updateScrollProgress);
-        ticking = true;
-    }
-}
-
-// Enhanced error handling
+// Basic error handling for console logging
 window.addEventListener('error', (e) => {
-    console.error('Error occurred:', e.error);
+    console.error('An unhandled error occurred:', e.error);
 });
 
-// Service worker registration (if needed)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // navigator.serviceWorker.register('/sw.js'); // Uncomment if you have a service worker
-    });
-}
+// Optional: Service worker registration for PWA features (uncomment if you have 'sw.js')
+// if ('serviceWorker' in navigator) {
+//     window.addEventListener('load', () => {
+//         navigator.serviceWorker.register('/sw.js').then(registration => {
+//             console.log('SW registered: ', registration);
+//         }).catch(registrationError => {
+//             console.log('SW registration failed: ', registrationError);
+//         });
+//     });
+// }
